@@ -3,17 +3,60 @@ from sudoku import Sudoku
 import time
 
 SIZE = 3
-WIDTH = 540
-HEIGHT = 540
+WIDTH = 800
+HEIGHT = 800
 SPEED = 0.015
 
 
+
+ #format time
+def formatTime(secs):
+    sec = secs%60
+    minute = secs//60
+
+    mat = " " + str(minute) + ":" + str(sec).zfill(2)
+    return mat
+               
+
+
 def main():
-    sudoku = Sudoku(SIZE,WIDTH, HEIGHT,SPEED)
+    filename = int(input("Enter filename or Enter: "))
+    full,curr = None,None
+
+    cnt = int(input("How many times do you want to run this? (0 for infinity): "))
+
+
+    if filename > 0:
+        full = str(filename) + "full.txt"
+        curr = str(filename) + "curr.txt"
+
+    
+    sudoku = Sudoku(SIZE,WIDTH, HEIGHT,SPEED, full,curr)
+
+
     key = None
     run = True
     start = time.time()
     gameOver = False
+
+
+    if cnt > 0:
+        num = 0
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                    break
+            
+            if num < cnt:
+                sudoku.drawBoard("Board: #" + str(num + 1), False)
+                sudoku.solve(sudoku.curr,False,True,False, "Board: #" + str(num + 1))
+                sudoku.reset()
+                num += 1
+
+   
+
+
 
     while run:
         if not gameOver: play_time = round(time.time() - start)
@@ -51,20 +94,20 @@ def main():
                 
                 if event.key == pygame.K_LEFT and sudoku.selected:
                     (j, i) = sudoku.selected
-                    sudoku.selected = ((j - 1) % (sudoku.cols ** 2), i)
+                    sudoku.selected = ((j - 1) % (sudoku.size ** 2), i)
 
 
                 if event.key == pygame.K_RIGHT and sudoku.selected:
                     (j, i) = sudoku.selected
-                    sudoku.selected = ((j + 1) % (sudoku.cols ** 2), i)
+                    sudoku.selected = ((j + 1) % (sudoku.size ** 2), i)
 
                 if event.key == pygame.K_UP and sudoku.selected:
                     (j, i) = sudoku.selected
-                    sudoku.selected = (j, (i - 1) % (sudoku.rows ** 2))
+                    sudoku.selected = (j, (i - 1) % (sudoku.size ** 2))
 
                 if event.key == pygame.K_DOWN and sudoku.selected:
                     (j, i) = sudoku.selected
-                    sudoku.selected = (j, (i + 1) % (sudoku.rows ** 2))
+                    sudoku.selected = (j, (i + 1) % (sudoku.size ** 2))
 
                 if event.key == pygame.K_r:
                     sudoku.reset()
@@ -77,7 +120,13 @@ def main():
                     key = None
                 if event.key == pygame.K_SPACE and not gameOver:
                     gameOver = True
-                    sudoku.solve(sudoku.curr,False,True,False, play_time)
+                    start2 = time.time()
+                    sudoku.solve(sudoku.curr,False,True,False, "Time: " + formatTime(play_time))
+                    end2 = time.time()
+                    hours, rem = divmod(end2-start2, 3600)
+                    minutes, seconds = divmod(rem, 60)
+                    print("{:0>2}:{:0>2}:{:05.2f}".format(int(hours),int(minutes),seconds))
+
                     sudoku.selected = None
                     break
                 if event.key == pygame.K_RETURN:
@@ -93,7 +142,7 @@ def main():
                         key = None
                         if sudoku.strikes == 3:
                             gameOver = True
-                            sudoku.solve(sudoku.curr,False,True,False, play_time)
+                            sudoku.solve(sudoku.curr,False,True,False, "Time: " + formatTime(play_time))
                             sudoku.selected = None
                             break
 
@@ -115,7 +164,7 @@ def main():
             sudoku.sketch(key)
             key = None
 
-        sudoku.drawBoard(play_time, gameOver)
+        sudoku.drawBoard("Time: " + formatTime(play_time), gameOver)
 
 main()
 pygame.quit()

@@ -2,25 +2,130 @@ import random
 import copy
 import pygame
 import time
+import numpy as np
 
 class Sudoku:
-    def __init__(self,size,width,height,speed):
+    def __init__(self,size,width,height,speed,full,curr):
         self.strikes = 0
         self.count = 0
-        self.size = size
-        self.width = width
+
+        if full and curr:
+            self.full = []
+            self.curr = []
+            vals = {
+                '0' : 0,
+                'A' : 1,
+                'B' : 2,
+                'C' : 3,
+                'D' : 4,
+                'E' : 5,
+                'F' : 6,
+                'G' : 7,
+                'H' : 8,
+                'I' : 9,
+                'J' : 10,
+                'K' : 11,
+                'L' : 12,
+                'M' : 13,
+                'N' : 14,
+                'O' : 15, 
+                'P' : 16,
+                'Q' : 17,
+                'R' : 18,
+                'S' : 19,
+                'T' : 20,
+                'U' : 21,
+                'V' : 22,
+                'W' : 23,
+                'X' : 24,
+                'Y' : 25,
+                'Z' : 26,
+                '1' : 27,
+                '2' : 28,
+                '3' : 29,
+                '4' : 30,
+                '5' : 31,
+                '6' : 32,
+                '7' : 33,
+                '8' : 34,
+                '9' : 35,
+                '$' : 36,
+                '#' : 37,
+                '+' : 38,
+                'a': 39, 
+                'b': 40, 
+                'c': 41, 
+                'd': 42, 
+                'e': 43, 
+                'f': 44, 
+                'g': 45, 
+                'h': 46, 
+                'i': 47, 
+                'j': 48, 
+                'k': 49, 
+                'm': 50, 
+                'n': 51, 
+                'o': 52, 
+                'p': 53, 
+                'q': 54, 
+                'r': 55, 
+                's': 56, 
+                't': 57, 
+                'u': 58, 
+                'v': 59, 
+                'w': 60, 
+                'x': 61, 
+                'y': 62, 
+                'z': 63,
+                '?' : 64 
+            }
+
+            self.size = int(full[0])
+
+
+            for line in open(full, "r"):
+                row = line.split(" ")
+
+                for i in range(len(row)):
+                    if self.size > 4:
+                        row[i] = vals[row[i][0]]
+                    else:
+                        row[i] = int(row[i][0])
+            
+                self.full.append(row)
+
+            for line in open(curr, "r"):
+                row = line.split(" ")
+               
+                
+                for i in range(len(row)):
+                    if self.size > 4:
+                        row[i] = vals[row[i][0]]
+                    else:
+                        row[i] = int(row[i][0])
+            
+                self.curr.append(row)
+
+            
+           
+        else:
+            self.size = size
+            self.full, self.curr = self.__genBoard() #get a random board
+
+        self.width = width // (self.size ** 2) * self.size ** 2
         self.speed = speed #delay between frames for solving animiation
         self.height = height
-        self.full, self.curr = self.__genBoard() #get a random board
+        
         self.pencils = self.__genPencils() 
         self.selected = (0,0)
         self.win = pygame.display.set_mode((self.width,self.height + 60))
         pygame.display.set_caption("Sudoku")
         pygame.font.init()
     
+    
     #reset the board
     def reset(self):
-        self.__init__(self.size,self.width,self.height,self.speed)
+        self.__init__(self.size,self.width,self.height,self.speed, None,None)
     
     #setup pencil marks
     def __genPencils(self):
@@ -44,8 +149,11 @@ class Sudoku:
         for _ in range(self.size ** 2):
             full_board.append([0] * (self.size ** 2))
             start_board.append([0] * (self.size ** 2))
-    
+        
+        print("Generating Full Board........")
         self.solve(full_board,True, False, False, None)
+        print("Full Board Solved")
+        print(full_board)
 
         for row in range(len(full_board)):
             for col in range(len(full_board[0])):
@@ -55,8 +163,10 @@ class Sudoku:
         rounds = 3
         non_empty_cells = self.findNonEmpty(start_board)
         non_empty_cell_cnt = len(non_empty_cells)
-        
-        while rounds > 0 and non_empty_cells and (non_empty_cell_cnt >= 17 or self.size <= 3):
+
+
+        print("Removing Hints from Board.......")
+        while rounds > 0 and non_empty_cells:
             #there should be at least 17 clues
             row,col = non_empty_cells.pop()
             removed_square = start_board[row][col]
@@ -72,14 +182,19 @@ class Sudoku:
                 start_board[row][col]=removed_square
                 non_empty_cell_cnt += 1
                 rounds -= 1
+            print("Non Empty Cells: " + str(non_empty_cell_cnt))
+            print("Rounds: " + str(rounds))
 
         return full_board,start_board
 
     #solve the board
     #cnt is a check for board uniqueness
-    def solve(self,bo,rand,print,cnt, play_time):
+    def solve(self,bo,rand,show,cnt, text):
         if cnt and self.count > 1:
             return False
+
+        
+        print(str(len(self.findNonEmpty(bo))) + "/" + str(self.size ** 4))
 
         nums = list(range(1,self.size * self.size + 1))
         if rand: random.shuffle(nums)
@@ -94,8 +209,9 @@ class Sudoku:
                     if self.__valid(bo,num,(row,col)):
                         bo[row][col] = num
 
-                        if print: 
-                            self.drawBoard(play_time , True)
+                        if show: 
+                            pygame.event.pump()
+                            self.drawBoard(text , True)
                             time.sleep(self.speed)
                            
 
@@ -105,13 +221,13 @@ class Sudoku:
                                 break
                             else:
                                 return True
-                        elif self.solve(bo,rand,print,cnt, play_time):
+                        elif self.solve(bo,rand,show,cnt, text):
                             return True
                 break
         
         bo[row][col] = 0
-        if print: 
-            self.drawBoard(play_time , True) 
+        if show: 
+            self.drawBoard(text , True) 
             time.sleep(self.speed)
         return False
     
@@ -148,7 +264,7 @@ class Sudoku:
         for i in range(len(lst)):
             for j in range(len(lst[0])):
                 x = i * gap
-                y = j * gap
+                y = j * gap 
                 write_text = True
 
                 if gameOver:
@@ -171,7 +287,7 @@ class Sudoku:
 
 
                 offset = gap // 4
-                fnt = pygame.font.SysFont("comicsans", gap)
+                fnt = pygame.font.SysFont("comicsans", int(gap / 1.5))
                 if not lst[i][j]:
                     txt = "0"
                 
@@ -183,7 +299,7 @@ class Sudoku:
                         txt = ""
                         cnt = 0
 
-                        xoffset = offset
+                        xoffset = -1 * offset
                         for num in lst[i][j]:
                             if cnt == self.size:
                                 self.win.blit(fnt.render(txt, 1, (128,128,128)), (y+offset, x+xoffset))
@@ -206,19 +322,20 @@ class Sudoku:
                     txt = str(lst[i][j])
                 
                 if write_text: 
+                    fnt = pygame.font.SysFont("comicsans", int(gap / 1.5))
                     text = fnt.render(txt, 1, (128,128,128))
                     if not gameOver:
-                        self.win.blit(text, (y+offset, x+offset))
+                        self.win.blit(text, (y+offset, x))
                     else:
-                        self.win.blit(text, (x+offset, y+offset))
+                        self.win.blit(text, (x+offset, y))
             
             for i in range(self.size ** 2 +1):
                 if i % self.size == 0 and i != 0:
                     thick = 4
                 else:
                     thick = 1
-                pygame.draw.line(self.win, (0,0,0), (0, i*gap), (self.width, i*gap), thick)
-                pygame.draw.line(self.win, (0, 0, 0), (i * gap, 0), (i * gap, self.height), thick)
+                pygame.draw.line(self.win, (0,0,0), (0, i*gap), (gap * self.size ** 2, i*gap), thick)
+                pygame.draw.line(self.win, (0, 0, 0), (i * gap, 0), (i * gap, gap * self.size ** 2), thick)
                
 
             if not gameOver:
@@ -227,23 +344,17 @@ class Sudoku:
                 y = j * gap
                 pygame.draw.rect(self.win, (0,0,255), (x,y, gap ,gap), 3)
     
-    #format time
-    def __formatTime(self,secs):
-        sec = secs%60
-        minute = secs//60
-
-        mat = " " + str(minute) + ":" + str(sec)
-        return mat
+   
 
     #draw the board
-    def drawBoard(self, playtime,gameOver):
+    def drawBoard(self,txt,gameOver):
         self.win.fill((255,255,255))
         fnt = pygame.font.SysFont("comicsans", 40)
-        text = fnt.render("Time: " + self.__formatTime(playtime), 1, (0,0,0))
-        self.win.blit(text, (self.width - 160, self.height + 20))
+        text = fnt.render(txt,1,(0,0,0))
+        self.win.blit(text, (self.width - 220, self.height + 10))
         # Draw Strikes
         text = fnt.render("X " * self.strikes, 1, (255, 0, 0))
-        self.win.blit(text, (20, self.height + 20))
+        self.win.blit(text, (20, self.height + 10))
 
         # Draw grid and board
         self.__draw(gameOver)
